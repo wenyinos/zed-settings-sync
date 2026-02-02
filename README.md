@@ -12,9 +12,7 @@ _Such an approach is heavily inspired by [Zed Discord Presence](https://github.c
 
 ## Installation
 
-When a corresponding [Zed extensions repo](https://github.com/zed-industries/extensions) PR is created and merged, you can simply download the extension in <kbd>zed: extensions</kbd>.
-
-Until then, you can use the [dev installation mode](#dev-extension-installation).
+Since the corresponding [Zed extensions repo PR](https://github.com/zed-industries/extensions/pull/4557) was [rejected](https://github.com/zed-industries/extensions/pull/4557#issuecomment-3834080836), you can use the [dev installation mode](#dev-extension-installation). This is not the best or the most convenient way but this is the only approach I can offer at the moment while we're anticipating the native settings sync functionality in Zed.
 
 ## Configuration
 
