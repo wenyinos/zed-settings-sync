@@ -32,3 +32,6 @@ extension.wasm
 # Added by cargo
 
 /target
+
+# Direnv
+.envrc
