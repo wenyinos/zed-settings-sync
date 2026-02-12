@@ -27,12 +27,10 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     eprintln!("Done");
 
-    let from = Path::new("target/debug").join(LSP_BINARY);
-    let to = zed_paths::extensions_dir()
-        .join("work")
-        .join(EXTENSION_ID)
-        .join(LSP_BINARY);
-    let to = fs::canonicalize(to)?;
+    let target_dir = env::var("CARGO_TARGET_DIR").unwrap_or_else(|_| "target".to_string());
+    let from = Path::new(&target_dir).join("debug").join(LSP_BINARY);
+    let to = zed_paths::extensions_dir().join("work").join(EXTENSION_ID);
+    let to = fs::canonicalize(to)?.join(LSP_BINARY);
 
     eprintln!(
         "Copying the LSP binary from {} to the extension working directory {}...",
