@@ -19,6 +19,21 @@ use crate::interactive_io::InteractiveIO;
 pub struct Config {
     gist_id: String,
     github_token: String,
+    #[serde(default = "default_sync_source")]
+    sync_source: String,
+    webdav_url: Option<String>,
+    webdav_username: Option<String>,
+    webdav_password: Option<String>,
+    #[serde(default = "default_remote_path")]
+    webdav_remote_path: String,
+}
+
+fn default_sync_source() -> String {
+    "github".to_string()
+}
+
+fn default_remote_path() -> String {
+    "/zed-settings-sync".to_string()
 }
 
 #[allow(clippy::missing_errors_doc)]
@@ -33,6 +48,31 @@ impl Config {
     #[must_use]
     pub fn github_token(&self) -> &str {
         &self.github_token
+    }
+
+    #[must_use]
+    pub fn is_webdav(&self) -> bool {
+        self.sync_source == "webdav"
+    }
+
+    #[must_use]
+    pub fn webdav_url(&self) -> &str {
+        self.webdav_url.as_deref().unwrap_or("")
+    }
+
+    #[must_use]
+    pub fn webdav_username(&self) -> &str {
+        self.webdav_username.as_deref().unwrap_or("")
+    }
+
+    #[must_use]
+    pub fn webdav_password(&self) -> &str {
+        self.webdav_password.as_deref().unwrap_or("")
+    }
+
+    #[must_use]
+    pub fn webdav_remote_path(&self) -> &str {
+        &self.webdav_remote_path
     }
 
     pub fn from_settings_file() -> Result<Self> {
@@ -59,30 +99,86 @@ impl Config {
     }
 
     pub fn from_interactive_io<T: InteractiveIO + 'static>(io: &mut T) -> Result<Self> {
-        io.write_line("Enter your Github token:")?;
-        let mut github_token: String;
+        io.write_line("Select sync source (github/webdav) [github]:")?;
+        let mut sync_source = String::new();
+        io.read_line(&mut sync_source)?;
+        let sync_source = sync_source.trim().to_lowercase();
+        let sync_source = if sync_source.is_empty() || sync_source == "github" {
+            "github"
+        } else {
+            "webdav"
+        };
 
-        github_token = read_password()?;
-        while github_token.is_empty() {
-            io.write_line("Github token cannot be empty")?;
+        if sync_source == "webdav" {
+            io.write_line("Enter WebDAV URL:")?;
+            let mut webdav_url = String::new();
+            io.read_line(&mut webdav_url)?;
+            let webdav_url = webdav_url.trim().to_owned();
+
+            io.write_line("Enter WebDAV username:")?;
+            let mut webdav_username = String::new();
+            io.read_line(&mut webdav_username)?;
+            let webdav_username = webdav_username.trim().to_owned();
+
+            io.write_line("Enter WebDAV password:")?;
+            let webdav_password = read_password()?;
+
+            io.write_line("Enter remote path [/zed-settings-sync]:")?;
+            let mut webdav_remote_path = String::new();
+            io.read_line(&mut webdav_remote_path)?;
+            let webdav_remote_path = webdav_remote_path.trim().to_owned();
+            let webdav_remote_path = if webdav_remote_path.is_empty() {
+                default_remote_path()
+            } else {
+                webdav_remote_path
+            };
+
+            Ok(Config {
+                gist_id: String::new(),
+                github_token: String::new(),
+                sync_source: sync_source.to_string(),
+                webdav_url: Some(webdav_url),
+                webdav_username: Some(webdav_username),
+                webdav_password: Some(webdav_password),
+                webdav_remote_path,
+            })
+        } else {
+            io.write_line("Enter your Github token:")?;
+            let mut github_token: String;
+
             github_token = read_password()?;
-        }
+            while github_token.is_empty() {
+                io.write_line("Github token cannot be empty")?;
+                github_token = read_password()?;
+            }
 
-        io.write_line("Enter your Gist ID:")?;
-        let mut gist_id = String::default();
-        io.read_line(&mut gist_id)?;
-        gist_id = gist_id.trim_end().to_owned();
-
-        while gist_id.is_empty() {
-            io.write_line("Gist ID cannot be empty")?;
+            io.write_line("Enter your Gist ID:")?;
+            let mut gist_id = String::default();
             io.read_line(&mut gist_id)?;
-            gist_id = gist_id.trim_end().to_owned();
-        }
+            #[allow(clippy::assigning_clones)]
+            {
+                gist_id = gist_id.trim_end().to_owned();
+            }
 
-        Ok(Config {
-            gist_id,
-            github_token,
-        })
+            while gist_id.is_empty() {
+                io.write_line("Gist ID cannot be empty")?;
+                io.read_line(&mut gist_id)?;
+                #[allow(clippy::assigning_clones)]
+                {
+                    gist_id = gist_id.trim_end().to_owned();
+                }
+            }
+
+            Ok(Config {
+                gist_id,
+                github_token,
+                sync_source: "github".to_string(),
+                webdav_url: None,
+                webdav_username: None,
+                webdav_password: None,
+                webdav_remote_path: default_remote_path(),
+            })
+        }
     }
 }
 
@@ -284,7 +380,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_from_user_input_success() -> Result<()> {
-        let input_lines = "\nabcdef1234567890\n"; // empty line followed by fake gist id
+        let input_lines = "\n\nabcdef1234567890\n"; // sync source (empty=github), empty token, empty gist id
         let mut io = CursorInteractiveIO::new(input_lines);
 
         let config = Config::from_interactive_io(&mut io)?;
@@ -292,6 +388,10 @@ mod tests {
         io.rewind_output()?;
         let mut output_lines_iter = io.output_lines();
 
+        assert_eq!(
+            output_lines_iter.next().unwrap()?,
+            "Select sync source (github/webdav) [github]:"
+        );
         assert_eq!(
             output_lines_iter.next().unwrap()?,
             "Enter your Github token:"
@@ -308,6 +408,7 @@ mod tests {
 
         assert_eq!(config.github_token, FAKE_GITHUB_TOKEN);
         assert_eq!(config.gist_id, "abcdef1234567890");
+        assert!(!config.is_webdav());
 
         Ok(())
     }

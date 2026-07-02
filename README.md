@@ -1,8 +1,10 @@
 <!-- markdownlint-disable-file MD033 --><!-- we are OK with inline HTML since we use <kbd> tags -->
 
+English | [中文](README_zh.md)
+
 # Zed Settings Sync
 
-**Zed Settings Sync** is an extension for [Zed](https://zed.dev) that aims to add support of automatically syncing your user-level config files to a Github Gist using LSP.
+**Zed Settings Sync** is an extension for [Zed](https://zed.dev) that aims to add support of automatically syncing your user-level config files to a remote storage using LSP. Supported sync sources: **GitHub Gist** and **WebDAV**.
 
 ℹ️ This extension doesn't sync project settings files because it's more pragmatic to just check them in the project's VCS repository if needed.
 
@@ -16,7 +18,13 @@ Since the corresponding [Zed extensions repo PR](https://github.com/zed-industri
 
 ## Configuration
 
-### If you already have Zed but you don't have a settings Gist yet
+### Sync source
+
+The extension supports two sync sources: **GitHub Gist** (default) and **WebDAV**.
+
+#### GitHub Gist
+
+##### If you already have Zed but you don't have a settings Gist yet
 
 1. Create a Github token with `gist` permission scope ([detailed guide](docs/CREATE_GITHUB_TOKEN.md)).
 2. Prepare a Gist ([detailed guide](docs/CREATE_SETTINGS_GIST.md)).
@@ -35,22 +43,51 @@ Since the corresponding [Zed extensions repo PR](https://github.com/zed-industri
 }
 ```
 
-### If you've installed a fresh Zed and want to pull in your settings from an existing Gist
+#### WebDAV
 
-⚠️ Unfortunately, due to the currently limited functionality of Zed extensions in general, the extension itself cannot load settings from a Github Gist. A CLI tool is provided for that purpose.
+Add the following to your Zed settings file:
+
+```jsonc
+{
+  "lsp": {
+    "settings-sync": {
+      "initialization_options": {
+        "sync_source": "webdav",
+        "webdav_url": "https://your-webdav-server.example.com",
+        "webdav_username": "your-username",
+        "webdav_password": "your-password",
+        "webdav_remote_path": "/zed-settings-sync"  // optional, defaults to "/zed-settings-sync"
+      }
+    }
+  }
+}
+```
+
+The extension uses Basic Auth and stores files as `PUT` requests to `{webdav_url}{webdav_remote_path}/{filename}`.
+
+### If you've installed a fresh Zed and want to pull in your settings from an existing sync source
+
+⚠️ Unfortunately, due to the currently limited functionality of Zed extensions in general, the extension itself cannot load settings from a Github Gist or WebDAV server. A CLI tool is provided for that purpose.
+
+#### Loading from GitHub Gist
 
 Ensure you have your [Github token](docs/CREATE_GITHUB_TOKEN.md) and [Gist ID](docs/CREATE_SETTINGS_GIST.md) at hand.
 
 1. Install [eget](https://github.com/zyedidia/eget)
 2. Run `eget vittorius/zed-settings-sync --to=~/.local/bin` (or any other destination directory you prefer)
 3. Pick the `zed-settings-sync-cli` binary in the choice provided by eget
-4. Run `zed-settings-sync-cli load` and follow the instructions
+4. Run `zed-settings-sync-cli load` and follow the instructions, selecting `github` as the sync source
 
 (Of course, you can download and unpack the binary manually from [Github releases](https://github.com/vittorius/zed-settings-sync/releases))
 
+#### Loading from WebDAV
+
+1. Download the `zed-settings-sync-cli` binary (see above)
+2. Run `zed-settings-sync-cli load` and select `webdav` as the sync source, then enter your WebDAV URL, username, password, and remote path
+
 ## Usage
 
-### Syncing to a Github Gist
+### Syncing settings files
 
 Given, you've configured everything correctly, now you can:
 
@@ -59,7 +96,7 @@ Given, you've configured everything correctly, now you can:
 - edit tasks (<kbd>zed: open tasks</kbd>)
 - edit debug tasks (<kbd>zed: open debug tasks</kbd>)
 
-After the file is saved, either manually, or with the auto-save feature, it will be synchronized to the Gist you've specified.
+After the file is saved, either manually, or with the auto-save feature, it will be synchronized to the configured sync source (GitHub Gist or WebDAV).
 
 ℹ️ At some point, Zed has added graphical interface for editing Settings and Keymap.
 It pops up by default when you run <kbd>zed: open settings</kbd> or <kbd>zed: open keymap</kbd> workbench action.

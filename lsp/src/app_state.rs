@@ -1,7 +1,9 @@
 use std::sync::Arc;
 
 use anyhow::Result;
+use common::config::Config;
 use common::sync::GithubClient;
+use common::sync::WebDavClient;
 #[cfg(not(test))]
 use tower_lsp::Client as LspClient;
 
@@ -18,8 +20,20 @@ pub struct AppState {
 }
 
 impl AppState {
-    pub fn new(gist_id: String, github_token: String, lsp_client: Arc<LspClient>) -> Result<Self> {
-        let sync_client = Arc::new(GithubClient::new(gist_id, github_token)?);
+    pub fn new(config: &Config, lsp_client: Arc<LspClient>) -> Result<Self> {
+        let sync_client: Arc<dyn common::sync::Client> = if config.is_webdav() {
+            Arc::new(WebDavClient::new(
+                config.webdav_url().to_string(),
+                config.webdav_username().to_string(),
+                config.webdav_password().to_string(),
+                config.webdav_remote_path().to_string(),
+            )?)
+        } else {
+            Arc::new(GithubClient::new(
+                config.gist_id().to_string(),
+                config.github_token().to_string(),
+            )?)
+        };
         let watched_paths = PathStore::new(sync_client, lsp_client)?;
 
         Ok(Self { watched_paths })

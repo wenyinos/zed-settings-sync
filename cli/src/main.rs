@@ -5,6 +5,7 @@ use common::config::Config;
 use common::interactive_io::InteractiveIO;
 #[double]
 use common::sync::GithubClient;
+use common::sync::WebDavClient;
 use mockall_double::double;
 #[cfg(test)]
 use test_support::nextest_only;
@@ -54,8 +55,17 @@ async fn main() -> Result<()> {
 async fn load<T: InteractiveIO + 'static>(io: &mut T, force: bool) -> Result<()> {
     let config = Config::from_interactive_io(io)?;
 
-    let client = GithubClient::new(config.gist_id().into(), config.github_token().into())?;
-    let mut loader = FileLoader::new(&client, io, force);
+    let client: Box<dyn common::sync::Client> = if config.is_webdav() {
+        Box::new(WebDavClient::new(
+            config.webdav_url().to_string(),
+            config.webdav_username().to_string(),
+            config.webdav_password().to_string(),
+            config.webdav_remote_path().to_string(),
+        )?)
+    } else {
+        Box::new(GithubClient::new(config.gist_id().into(), config.github_token().into())?)
+    };
+    let mut loader = FileLoader::new(&*client, io, force);
 
     loader.load_files().await
 }
@@ -151,6 +161,7 @@ mod tests {
                 mock_config
                     .expect_github_token()
                     .return_const(String::default());
+                mock_config.expect_is_webdav().return_const(false);
                 Ok(mock_config)
             });
 
@@ -178,6 +189,7 @@ mod tests {
                 mock_config
                     .expect_github_token()
                     .return_const(String::default());
+                mock_config.expect_is_webdav().return_const(false);
                 Ok(mock_config)
             });
 
@@ -210,6 +222,7 @@ mod tests {
                 mock_config
                     .expect_github_token()
                     .return_const(github_token.to_string());
+                mock_config.expect_is_webdav().return_const(false);
                 Ok(mock_config)
             });
 

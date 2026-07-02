@@ -10,10 +10,18 @@ pub enum Error {
     InvalidConfig(String),
     #[error("Github error: {0}")]
     Github(GitHubError),
+    #[error("WebDAV error: {0}")]
+    WebDav(reqwest::Error),
     #[error("Internal error: {0}")]
     Internal(Box<dyn std::error::Error + Send + Sync>),
     #[error("Unhandled internal error from underlying client library: {0}")]
     UnhandledInternal(String),
+}
+
+impl From<reqwest::Error> for Error {
+    fn from(err: reqwest::Error) -> Self {
+        Error::WebDav(err)
+    }
 }
 
 impl From<OctocrabError> for Error {

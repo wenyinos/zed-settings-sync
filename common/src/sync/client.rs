@@ -3,11 +3,13 @@ use std::fmt::Debug;
 use anyhow::Result;
 use async_trait::async_trait;
 pub use github_client::*;
+pub use webdav_client::*;
 use thiserror::Error;
 
 use crate::sync::{Error, LocalFileData};
 
 mod github_client;
+mod webdav_client;
 
 pub type FileResult = Result<(String, String), FileError>;
 

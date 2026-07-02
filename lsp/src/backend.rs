@@ -91,12 +91,8 @@ impl LanguageServer for Backend {
             tower_lsp::jsonrpc::Error::internal_error()
         })?;
 
-        let app_state = AppState::new(
-            config.gist_id().into(),
-            config.github_token().into(),
-            Arc::new(self.lsp_client.clone()),
-        )
-        .map_err(|err| {
+        let app_state = AppState::new(&config, Arc::new(self.lsp_client.clone()))
+            .map_err(|err| {
             error!("Failed to build the app state: {}", err);
             tower_lsp::jsonrpc::Error::internal_error()
         })?;

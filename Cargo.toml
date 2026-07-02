@@ -27,6 +27,8 @@ assert_fs = "1.1.3"
 ctor = { version = "0.6.3", default-features = false, features = ["proc_macro"] }
 paths = { git = "https://github.com/zed-industries/zed.git" }
 mockall_double = "0.3.1"
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls"] }
+quick-xml = "0.37"
 
 [dependencies]
 zed_extension_api = { workspace = true }
