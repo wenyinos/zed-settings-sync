@@ -91,11 +91,11 @@ impl LanguageServer for Backend {
             tower_lsp::jsonrpc::Error::internal_error()
         })?;
 
-        let app_state = AppState::new(&config, Arc::new(self.lsp_client.clone()))
-            .map_err(|err| {
-            error!("Failed to build the app state: {}", err);
-            tower_lsp::jsonrpc::Error::internal_error()
-        })?;
+        let app_state =
+            AppState::new(&config, Arc::new(self.lsp_client.clone())).map_err(|err| {
+                error!("Failed to build the app state: {}", err);
+                tower_lsp::jsonrpc::Error::internal_error()
+            })?;
 
         #[allow(clippy::expect_used)]
         self.app_state

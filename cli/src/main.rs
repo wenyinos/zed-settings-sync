@@ -63,7 +63,10 @@ async fn load<T: InteractiveIO + 'static>(io: &mut T, force: bool) -> Result<()>
             config.webdav_remote_path().to_string(),
         )?)
     } else {
-        Box::new(GithubClient::new(config.gist_id().into(), config.github_token().into())?)
+        Box::new(GithubClient::new(
+            config.gist_id().into(),
+            config.github_token().into(),
+        )?)
     };
     let mut loader = FileLoader::new(&*client, io, force);
 

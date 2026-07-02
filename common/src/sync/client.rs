@@ -3,8 +3,8 @@ use std::fmt::Debug;
 use anyhow::Result;
 use async_trait::async_trait;
 pub use github_client::*;
-pub use webdav_client::*;
 use thiserror::Error;
+pub use webdav_client::*;
 
 use crate::sync::{Error, LocalFileData};
 
